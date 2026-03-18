@@ -1,5 +1,10 @@
+from utils.oc_loader import load_oc, generate_purchase_order_bulk, validar_arquivo, ErroValidacaoArquivo
+from m8.purchase_order import PurchaseOrder
+from m8 import M8, BadRequestException
 import shutil
 from pathlib import Path
+import sys
+import os
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog,
@@ -9,27 +14,33 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor
 
-STATIC_DIR = Path(__file__).parent.parent.parent / "static"
-MODELO_ARQUIVO = STATIC_DIR / "OCs de Preceptores.xlsx"
-from m8 import M8, BadRequestException
-from m8.purchase_order import PurchaseOrder
-from utils.oc_loader import load_oc, generate_purchase_order_bulk, validar_arquivo, ErroValidacaoArquivo
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
+MODELO_ARQUIVO = Path(resource_path(os.path.join("static", "OCs de Preceptores.xlsx")))
 
 TENANT = "prozeducacao"
 COMPANY_ID = 31
 
-COL_EMPRESA     = 0
-COL_FORNECEDOR  = 1
-COL_VALOR       = 2
-COL_VENCIMENTO  = 3
-COL_OBSERVACAO  = 4
-COL_STATUS      = 5
-COL_RESULTADO   = 6
+COL_EMPRESA = 0
+COL_FORNECEDOR = 1
+COL_VALOR = 2
+COL_VENCIMENTO = 3
+COL_OBSERVACAO = 4
+COL_STATUS = 5
+COL_RESULTADO = 6
 
-COLUNAS = ["Empresa", "Fornecedor", "Valor", "Vencimento", "Observação", "Status", "Resultado"]
+COLUNAS = ["Empresa", "Fornecedor", "Valor",
+           "Vencimento", "Observação", "Status", "Resultado"]
 
 COR_SUCESSO = QColor("#c8e6c9")
-COR_ERRO    = QColor("#ffcdd2")
+COR_ERRO = QColor("#ffcdd2")
 
 
 class CredenciaisDialog(QDialog):
@@ -46,7 +57,8 @@ class CredenciaisDialog(QDialog):
         self.senha_input.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addRow("Senha:", self.senha_input)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addRow(buttons)
@@ -81,7 +93,8 @@ class MainWindow(QMainWindow):
 
         menu_bar = self.menuBar()
         menu_arquivo = menu_bar.addMenu("Arquivo")
-        acao_salvar_modelo = menu_arquivo.addAction("Salvar planilha modelo...")
+        acao_salvar_modelo = menu_arquivo.addAction(
+            "Salvar planilha modelo...")
         acao_salvar_modelo.triggered.connect(self._salvar_modelo)
 
         menu_configuracoes = menu_bar.addMenu("Configurações")
@@ -144,7 +157,8 @@ class MainWindow(QMainWindow):
         return False
 
     def _choose_file(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel (*.xlsx)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Selecionar arquivo", "", "Excel (*.xlsx)")
         if not path:
             return
 
