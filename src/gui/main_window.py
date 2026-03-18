@@ -6,10 +6,12 @@ from pathlib import Path
 import sys
 import os
 
+import markdown
+
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog,
     QDialog, QFormLayout, QLineEdit, QDialogButtonBox, QTableWidget, QTableWidgetItem,
-    QProgressBar, QMessageBox,
+    QProgressBar, QMessageBox, QTextBrowser,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor
@@ -24,6 +26,7 @@ def resource_path(relative_path):
 
 
 MODELO_ARQUIVO = Path(resource_path(os.path.join("static", "OCs de Preceptores.xlsx")))
+ABOUT_ARQUIVO = Path(resource_path(os.path.join("static", "about.md")))
 
 TENANT = "prozeducacao"
 COMPANY_ID = 31
@@ -67,6 +70,25 @@ class CredenciaisDialog(QDialog):
         return self.usuario_input.text(), self.senha_input.text()
 
 
+class SobreDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Sobre")
+        self.resize(480, 340)
+
+        layout = QVBoxLayout(self)
+
+        browser = QTextBrowser()
+        browser.setOpenExternalLinks(True)
+        html = markdown.markdown(ABOUT_ARQUIVO.read_text(encoding="utf-8"))
+        browser.setHtml(html)
+        layout.addWidget(browser)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+
 class CriarOCWorker(QThread):
     progresso = pyqtSignal(int, bool, str)  # row, sucesso, mensagem
     concluido = pyqtSignal()
@@ -100,6 +122,9 @@ class MainWindow(QMainWindow):
         menu_configuracoes = menu_bar.addMenu("Configurações")
         acao_credenciais = menu_configuracoes.addAction("Credenciais")
         acao_credenciais.triggered.connect(self._abrir_credenciais)
+
+        acao_sobre = menu_bar.addAction("Sobre")
+        acao_sobre.triggered.connect(lambda: SobreDialog(self).exec())
 
         central = QWidget()
         self.setCentralWidget(central)
