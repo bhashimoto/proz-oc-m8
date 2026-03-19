@@ -1,4 +1,4 @@
-from utils.oc_loader import load_oc, generate_purchase_order_bulk, validar_arquivo, ErroValidacaoArquivo
+from utils.oc_loader import load_oc, generate_purchase_order_bulk, validate_file, FileValidationError
 from m8.purchase_order import PurchaseOrder
 from m8 import M8, BadRequestException
 import shutil
@@ -25,7 +25,8 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-MODELO_ARQUIVO = Path(resource_path(os.path.join("static", "OCs de Preceptores.xlsx")))
+MODELO_ARQUIVO = Path(resource_path(
+    os.path.join("static", "OCs de Preceptores.xlsx")))
 ABOUT_ARQUIVO = Path(resource_path(os.path.join("static", "about.md")))
 
 TENANT = "prozeducacao"
@@ -114,45 +115,45 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ordem de Compra — M8")
 
         menu_bar = self.menuBar()
-        menu_arquivo = menu_bar.addMenu("Arquivo")
-        acao_salvar_modelo = menu_arquivo.addAction(
+        menu_file = menu_bar.addMenu("Arquivo")
+        action_save_model = menu_file.addAction(
             "Salvar planilha modelo...")
-        acao_salvar_modelo.triggered.connect(self._salvar_modelo)
+        action_save_model.triggered.connect(self._salvar_modelo)
 
-        menu_configuracoes = menu_bar.addMenu("Configurações")
-        acao_credenciais = menu_configuracoes.addAction("Credenciais")
-        acao_credenciais.triggered.connect(self._abrir_credenciais)
+        menu_configs = menu_bar.addMenu("Configurações")
+        action_credentials = menu_configs.addAction("Credenciais")
+        action_credentials.triggered.connect(self._abrir_credenciais)
 
-        acao_sobre = menu_bar.addAction("Sobre")
-        acao_sobre.triggered.connect(lambda: SobreDialog(self).exec())
+        action_about = menu_bar.addAction("Sobre")
+        action_about.triggered.connect(lambda: SobreDialog(self).exec())
 
         central = QWidget()
         self.setCentralWidget(central)
 
         layout = QVBoxLayout(central)
 
-        botoes = QHBoxLayout()
+        buttons = QHBoxLayout()
         self.import_button = QPushButton("Importar OC")
         self.import_button.clicked.connect(self._choose_file)
-        botoes.addWidget(self.import_button)
+        buttons.addWidget(self.import_button)
 
-        self.criar_button = QPushButton("Criar OCs no M8")
-        self.criar_button.clicked.connect(self._criar_ocs)
-        self.criar_button.setEnabled(False)
-        botoes.addWidget(self.criar_button)
+        self.create_button = QPushButton("Criar OCs no M8")
+        self.create_button.clicked.connect(self._criar_ocs)
+        self.create_button.setEnabled(False)
+        buttons.addWidget(self.create_button)
 
-        layout.addLayout(botoes)
+        layout.addLayout(buttons)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(False)
         layout.addWidget(self.progress_bar)
 
-        self.tabela = QTableWidget(0, len(COLUNAS))
-        self.tabela.setHorizontalHeaderLabels(COLUNAS)
-        self.tabela.horizontalHeader().setStretchLastSection(True)
-        self.tabela.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        layout.addWidget(self.tabela)
+        self.table = QTableWidget(0, len(COLUNAS))
+        self.table.setHorizontalHeaderLabels(COLUNAS)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        layout.addWidget(self.table)
 
         self._usuario: str | None = None
         self._senha: str | None = None
@@ -188,23 +189,23 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            validar_arquivo(path)
-        except ErroValidacaoArquivo as e:
+            validate_file(path)
+        except FileValidationError as e:
             QMessageBox.critical(self, "Arquivo inválido", str(e))
             return
 
         items = load_oc(path)
         self._pos = generate_purchase_order_bulk(items)
-        self._preencher_tabela(self._pos)
-        self.criar_button.setEnabled(bool(self._pos))
+        self._preencher_table(self._pos)
+        self.create_button.setEnabled(bool(self._pos))
 
-    def _preencher_tabela(self, pos: list[PurchaseOrder]):
-        self.tabela.setRowCount(0)
+    def _preencher_table(self, pos: list[PurchaseOrder]):
+        self.table.setRowCount(0)
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
         for po in pos:
-            row = self.tabela.rowCount()
-            self.tabela.insertRow(row)
+            row = self.table.rowCount()
+            self.table.insertRow(row)
             vencimento = po.installments[0].vencimento if po.installments else ""
             valor = po.installments[0].valor if po.installments else ""
             valores = [
@@ -219,8 +220,8 @@ class MainWindow(QMainWindow):
             for col, texto in enumerate(valores):
                 item = QTableWidgetItem(texto)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tabela.setItem(row, col, item)
-        self.tabela.resizeColumnsToContents()
+                self.table.setItem(row, col, item)
+        self.table.resizeColumnsToContents()
 
     def _criar_ocs(self):
         if not self._pos:
@@ -230,7 +231,7 @@ class MainWindow(QMainWindow):
             if not self._abrir_credenciais():
                 return
 
-        self.criar_button.setEnabled(False)
+        self.create_button.setEnabled(False)
         self.import_button.setEnabled(False)
 
         self.progress_bar.setMaximum(len(self._pos))
@@ -247,14 +248,14 @@ class MainWindow(QMainWindow):
         item = QTableWidgetItem(mensagem)
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         item.setBackground(cor)
-        self.tabela.setItem(row, COL_RESULTADO, item)
+        self.table.setItem(row, COL_RESULTADO, item)
         for col in range(COL_RESULTADO):
-            cell = self.tabela.item(row, col)
+            cell = self.table.item(row, col)
             if cell:
                 cell.setBackground(cor)
         self.progress_bar.setValue(row + 1)
 
     def _ao_concluir(self):
         self.import_button.setEnabled(True)
-        self.criar_button.setEnabled(True)
-        self.tabela.resizeColumnsToContents()
+        self.create_button.setEnabled(True)
+        self.table.resizeColumnsToContents()

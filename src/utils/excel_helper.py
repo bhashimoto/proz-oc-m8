@@ -11,7 +11,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 
 class ExcelHelper:
-    """Utility class for reading, writing, and manipulating Excel files."""
+    """Utility wrapper around openpyxl for reading, writing, and manipulating Excel files."""
 
     def __init__(self, file_path: str | Path | None = None):
         self.file_path = Path(file_path) if file_path else None
@@ -19,7 +19,7 @@ class ExcelHelper:
             self.workbook = openpyxl.load_workbook(self.file_path)
         else:
             self.workbook = Workbook()
-            # Remove the default empty sheet if we're starting fresh without a path
+            # Remove the default empty sheet when creating without a path
             if not file_path:
                 self.workbook.active.title = "Sheet1"
 
@@ -60,7 +60,7 @@ class ExcelHelper:
     # ------------------------------------------------------------------
 
     def read_cell(self, row: int, col: int | str, sheet: str | None = None) -> Any:
-        """Read a single cell value. col can be an int (1-based) or letter ('A')."""
+        """Read a single cell value. col can be an int (1-based) or a letter ('A')."""
         ws = self.workbook[sheet] if sheet else self.workbook.active
         col_idx = column_index_from_string(col) if isinstance(col, str) else col
         return ws.cell(row=row, column=col_idx).value

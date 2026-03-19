@@ -23,7 +23,8 @@ python src/main.py
 
 ## Language
 
-All user-facing strings, messages, logs, and comments must be written in **Brazilian Portuguese (pt-BR)**.
+All user-facing strings and messages must be written in **Brazilian Portuguese (pt-BR)**. Everything else (code, logs, and comments) must be in **English**.
+
 
 ## Architecture
 

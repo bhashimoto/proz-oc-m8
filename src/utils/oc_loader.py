@@ -9,47 +9,31 @@ from m8.purchase_order import PurchaseOrder, PurchaseOrderInstallment, PurchaseO
 
 OC_SHEET = "OC"
 CADASTRO_SHEET = "Cadastro"
-VERSOES_SUPORTADAS = {"v1"}
+SUPPORTED_VERSIONS = {"v1"}
 
 
-class ErroValidacaoArquivo(Exception):
+class FileValidationError(Exception):
     pass
 
 
-def validar_arquivo(file_path: str | Path) -> None:
+def validate_file(file_path: str | Path) -> None:
     helper = ExcelHelper(file_path)
 
     if CADASTRO_SHEET not in helper.sheet_names():
-        raise ErroValidacaoArquivo(
-            f"Planilha inválida. Utilizar a planilha modelo fornecida."
+        raise FileValidationError(
+            "Planilha inválida. Utilizar a planilha modelo fornecida."
         )
 
-    versao = helper.read_cell(row=1, col=1, sheet=CADASTRO_SHEET)
-    if versao not in VERSOES_SUPORTADAS:
-        versoes = ", ".join(sorted(VERSOES_SUPORTADAS))
-        raise ErroValidacaoArquivo(
-            f"Versão do arquivo inválida: '{
-                versao}'. Versões suportadas: {versoes}."
+    version = helper.read_cell(row=1, col=1, sheet=CADASTRO_SHEET)
+    if version not in SUPPORTED_VERSIONS:
+        supported = ", ".join(sorted(SUPPORTED_VERSIONS))
+        raise FileValidationError(
+            f"Versão do arquivo inválida: '{version}'. Versões suportadas: {supported}."
         )
-
-
-def generate_purchase_order_bulk(input: list[dict[str, Any]]) -> list[PurchaseOrder]:
-    pos = []
-    for item in input:
-        unidade = item["Unidade"]
-        fornecedorId = item["ID Fornecedor"]
-        valor = item["Valor"]
-        vencimento = item["Vencimento"].strftime("%Y-%m-%dT%H:%M:%SZ")
-        obs = item["Observação"]
-
-        pos.append(generate_purchase_order(
-            unidade=unidade, fornecedorId=fornecedorId, valor=valor, vencimento=vencimento, obs=obs))
-
-    return pos
 
 
 def load_oc(file_path: str | Path) -> list[dict[str, Any]]:
-    """Load the 'OC' sheet from an Excel file and return its table as a list of dicts.
+    """Load the 'OC' sheet from an Excel file and return its data as a list of dicts.
 
     Row 1 is treated as the header. Rows where all values are None are skipped.
     """
@@ -82,12 +66,12 @@ def generate_purchase_order(unidade: str, fornecedorId: int,
         'Uberlândia': 31,
     }
 
-    FUNCIONARIO: dict[int, int] = {
+    EMPLOYEE: dict[int, int] = {
         1:  1411093179,
         31: 1411091897,
     }
 
-    CENTRO_CUSTO: dict[str, int] = {
+    COST_CENTER: dict[str, int] = {
         'Carapicuíba': 0,
         'Diadema': 0,
         'Grajaú': 0,
@@ -109,54 +93,36 @@ def generate_purchase_order(unidade: str, fornecedorId: int,
         'Uberlândia': 291,
     }
 
-    OP_FISCAL: dict[int, int] = {
-        1: 1,  # TODO: atualizar com valor certo
+    FISCAL_OP: dict[int, int] = {
+        1: 1,  # TODO: update with correct value
         31: 250,
     }
 
-    """
-    MONTHS = {
-        1: "JANEIRO",
-        2: "FEVEREIRO",
-        3: "MARÇO",
-        4: "ABRIL",
-        5: "MAIO",
-        6: "JUNHO",
-        7: "JULHO",
-        8: "AGOSTO",
-        9: "SETEMBRO",
-        10: "OUTUBRO",
-        11: "NOVEMBRO",
-        12: "DEZEMBRO",
-    }
-    """
-
     STATUS = "Aprovado"
-    FRETE_ID = 9
-    CONDICAO_PAGAMENTO_ID = 15
-    TIPO_ORDEM_COMPRA_ID = 1
-    PRODUTO_ID = 2307
-    UNIDADE_ID = 5
-    QUANTIDADE = 1
-    QUANTIDADE_COMPRADA = 1
+    FREIGHT_ID = 9
+    PAYMENT_CONDITION_ID = 15
+    PURCHASE_ORDER_TYPE_ID = 1
+    PRODUCT_ID = 2307
+    UNIT_ID = 5
+    QUANTITY = 1
+    PURCHASED_QUANTITY = 1
 
-    dt_emissao = dt.datetime.now()
-    emissao = dt_emissao.strftime("%Y-%m-%dT%H:%M:%SZ")
+    issued_at = dt.datetime.now()
+    emissao = issued_at.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     empresaId = EMPRESA[unidade]
-    funcionarioId = FUNCIONARIO[empresaId]
-    centroCustoId = CENTRO_CUSTO[unidade]
-    operacaoFiscalId = OP_FISCAL[empresaId]
-    observacao = obs
+    funcionarioId = EMPLOYEE[empresaId]
+    centroCustoId = COST_CENTER[unidade]
+    operacaoFiscalId = FISCAL_OP[empresaId]
 
     po_installment = PurchaseOrderInstallment(
         vencimento=vencimento, valor=valor)
 
     po_item = PurchaseOrderItem(
-        produtoId=PRODUTO_ID,
-        unidadeId=UNIDADE_ID,
-        quantidade=QUANTIDADE,
-        quantidadeComprada=QUANTIDADE_COMPRADA,
+        produtoId=PRODUCT_ID,
+        unidadeId=UNIT_ID,
+        quantidade=QUANTITY,
+        quantidadeComprada=PURCHASED_QUANTITY,
         valorUnitario=valor,
         centroCustoId=centroCustoId,
         operacaoFiscalId=operacaoFiscalId,
@@ -168,12 +134,27 @@ def generate_purchase_order(unidade: str, fornecedorId: int,
         emissao=emissao,
         fornecedorId=fornecedorId,
         funcionarioId=funcionarioId,
-        freteId=FRETE_ID,
-        condicaoPagamentoId=CONDICAO_PAGAMENTO_ID,
-        observacao=observacao,
+        freteId=FREIGHT_ID,
+        condicaoPagamentoId=PAYMENT_CONDITION_ID,
+        observacao=obs,
         items=[po_item],
         installments=[po_installment],
-        tipoOrdemCompraId=TIPO_ORDEM_COMPRA_ID
+        tipoOrdemCompraId=PURCHASE_ORDER_TYPE_ID
     )
 
     return po
+
+
+def generate_purchase_order_bulk(input: list[dict[str, Any]]) -> list[PurchaseOrder]:
+    pos = []
+    for item in input:
+        unidade = item["Unidade"]
+        fornecedorId = item["ID Fornecedor"]
+        valor = item["Valor"]
+        vencimento = item["Vencimento"].strftime("%Y-%m-%dT%H:%M:%SZ")
+        obs = item["Observação"]
+
+        pos.append(generate_purchase_order(
+            unidade=unidade, fornecedorId=fornecedorId, valor=valor, vencimento=vencimento, obs=obs))
+
+    return pos
