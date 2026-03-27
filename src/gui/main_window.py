@@ -40,7 +40,7 @@ COL_OBSERVACAO = 4
 COL_STATUS = 5
 COL_RESULTADO = 6
 
-COLUNAS = ["Empresa", "Fornecedor", "Valor",
+COLUNAS = ["Empresa", "Tipo", "Fornecedor", "Valor",
            "Vencimento", "Observação", "Status", "Resultado"]
 
 COR_SUCESSO = QColor("#c8e6c9")
@@ -210,6 +210,7 @@ class MainWindow(QMainWindow):
             valor = po.installments[0].valor if po.installments else ""
             valores = [
                 str(po.empresaId),
+                str(po.tipoOC),
                 str(po.fornecedorId),
                 str(valor),
                 vencimento,

@@ -44,3 +44,8 @@ All user-facing strings and messages must be written in **Brazilian Portuguese (
 1. Read purchase order data from an Excel file via `oc_loader.py`
 2. Instantiate `PurchaseOrder` / `PurchaseOrderItem` dataclasses
 3. Use `M8` client to POST the order to the ERP API
+
+
+## Style Guide
+
+For front-end directions, refer to docs/STYLE.md.

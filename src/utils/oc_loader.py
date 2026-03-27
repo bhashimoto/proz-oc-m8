@@ -9,7 +9,7 @@ from m8.purchase_order import PurchaseOrder, PurchaseOrderInstallment, PurchaseO
 
 OC_SHEET = "OC"
 CADASTRO_SHEET = "Cadastro"
-SUPPORTED_VERSIONS = {"v1"}
+SUPPORTED_VERSIONS = {"v2"}
 
 
 class FileValidationError(Exception):
@@ -28,7 +28,8 @@ def validate_file(file_path: str | Path) -> None:
     if version not in SUPPORTED_VERSIONS:
         supported = ", ".join(sorted(SUPPORTED_VERSIONS))
         raise FileValidationError(
-            f"Versão do arquivo inválida: '{version}'. Versões suportadas: {supported}."
+            f"Versão do arquivo inválida: '{
+                version}'. Versões suportadas: {supported}."
         )
 
 
@@ -42,8 +43,16 @@ def load_oc(file_path: str | Path) -> list[dict[str, Any]]:
     return [row for row in rows if any(v is not None for v in row.values())]
 
 
-def generate_purchase_order(unidade: str, fornecedorId: int,
+def generate_purchase_order(unidade: str, tipo_oc: str, fornecedorId: int,
                             valor: float, vencimento: str, obs: str) -> PurchaseOrder:
+    TIPO_OC_VALIDO = [
+        "professor",
+        "preceptor",
+    ]
+
+    if tipo_oc not in TIPO_OC_VALIDO:
+        raise ValueError(f"tipo de OC inválido: {tipo_oc}")
+
     EMPRESA = {
         'Carapicuíba': 1,
         'Diadema': 1,
@@ -65,6 +74,9 @@ def generate_purchase_order(unidade: str, fornecedorId: int,
         'Montes Claros': 31,
         'Uberlândia': 31,
     }
+
+    if unidade not in EMPRESA:
+        raise ValueError(f"Unidade inválida: {unidade}")
 
     EMPLOYEE: dict[int, int] = {
         1:  1411093179,
@@ -93,9 +105,15 @@ def generate_purchase_order(unidade: str, fornecedorId: int,
         'Uberlândia': 291,
     }
 
-    FISCAL_OP: dict[int, int] = {
-        1: 1,  # TODO: update with correct value
-        31: 250,
+    FISCAL_OP: dict[int, dict[str, int]] = {
+        1: {
+            "professor": 1,
+            "preceptor": 1,
+        },  # TODO: update with correct value
+        31: {
+            "professor": 252,
+            "preceptor": 250,
+        }
     }
 
     STATUS = "Aprovado"
@@ -113,7 +131,7 @@ def generate_purchase_order(unidade: str, fornecedorId: int,
     empresaId = EMPRESA[unidade]
     funcionarioId = EMPLOYEE[empresaId]
     centroCustoId = COST_CENTER[unidade]
-    operacaoFiscalId = FISCAL_OP[empresaId]
+    operacaoFiscalId = FISCAL_OP[empresaId][tipo_oc]
 
     po_installment = PurchaseOrderInstallment(
         vencimento=vencimento, valor=valor)
@@ -139,7 +157,8 @@ def generate_purchase_order(unidade: str, fornecedorId: int,
         observacao=obs,
         items=[po_item],
         installments=[po_installment],
-        tipoOrdemCompraId=PURCHASE_ORDER_TYPE_ID
+        tipoOrdemCompraId=PURCHASE_ORDER_TYPE_ID,
+        tipoOC=tipo_oc
     )
 
     return po
@@ -153,8 +172,9 @@ def generate_purchase_order_bulk(input: list[dict[str, Any]]) -> list[PurchaseOr
         valor = item["Valor"]
         vencimento = item["Vencimento"].strftime("%Y-%m-%dT%H:%M:%SZ")
         obs = item["Observação"]
+        tipo_oc = item["Tipo"].lower()
 
         pos.append(generate_purchase_order(
-            unidade=unidade, fornecedorId=fornecedorId, valor=valor, vencimento=vencimento, obs=obs))
+            unidade=unidade, fornecedorId=fornecedorId, valor=valor, vencimento=vencimento, obs=obs, tipo_oc=tipo_oc))
 
     return pos
