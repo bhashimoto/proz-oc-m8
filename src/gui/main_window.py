@@ -34,12 +34,13 @@ COMPANY_ID = 31
 
 COL_CHECKBOX = 0
 COL_EMPRESA = 1
-COL_FORNECEDOR = 2
-COL_VALOR = 3
-COL_VENCIMENTO = 4
-COL_OBSERVACAO = 5
-COL_STATUS = 6
-COL_RESULTADO = 7
+COL_TIPO = 2
+COL_FORNECEDOR = 3
+COL_VALOR = 4
+COL_VENCIMENTO = 5
+COL_OBSERVACAO = 6
+COL_STATUS = 7
+COL_RESULTADO = 8
 
 COLUNAS = ["", "Empresa", "Tipo", "Fornecedor", "Valor",
            "Vencimento", "Observação", "Status", "Resultado"]
