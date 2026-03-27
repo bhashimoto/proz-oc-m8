@@ -133,6 +133,8 @@ def generate_purchase_order(unidade: str, tipo_oc: str, fornecedorId: int,
     centroCustoId = COST_CENTER[unidade]
     operacaoFiscalId = FISCAL_OP[empresaId][tipo_oc]
 
+    vencimento = vencimento.replace("T00", "T04")
+
     po_installment = PurchaseOrderInstallment(
         vencimento=vencimento, valor=valor)
 
