@@ -32,15 +32,16 @@ ABOUT_ARQUIVO = Path(resource_path(os.path.join("static", "about.md")))
 TENANT = "prozeducacao"
 COMPANY_ID = 31
 
-COL_EMPRESA = 0
-COL_FORNECEDOR = 1
-COL_VALOR = 2
-COL_VENCIMENTO = 3
-COL_OBSERVACAO = 4
-COL_STATUS = 5
-COL_RESULTADO = 6
+COL_CHECKBOX = 0
+COL_EMPRESA = 1
+COL_FORNECEDOR = 2
+COL_VALOR = 3
+COL_VENCIMENTO = 4
+COL_OBSERVACAO = 5
+COL_STATUS = 6
+COL_RESULTADO = 7
 
-COLUNAS = ["Empresa", "Tipo", "Fornecedor", "Valor",
+COLUNAS = ["", "Empresa", "Tipo", "Fornecedor", "Valor",
            "Vencimento", "Observação", "Status", "Resultado"]
 
 COR_SUCESSO = QColor("#c8e6c9")
@@ -153,7 +154,13 @@ class MainWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(COLUNAS)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setColumnWidth(COL_CHECKBOX, 30)
         layout.addWidget(self.table)
+
+        self.delete_button = QPushButton("Apagar OCs temporárias")
+        self.delete_button.clicked.connect(self._apagar_temporarias)
+        self.delete_button.setEnabled(False)
+        layout.addWidget(self.delete_button)
 
         self._usuario: str | None = None
         self._senha: str | None = None
@@ -198,6 +205,7 @@ class MainWindow(QMainWindow):
         self._pos = generate_purchase_order_bulk(items)
         self._preencher_table(self._pos)
         self.create_button.setEnabled(bool(self._pos))
+        self.delete_button.setEnabled(bool(self._pos))
 
     def _preencher_table(self, pos: list[PurchaseOrder]):
         self.table.setRowCount(0)
@@ -206,6 +214,12 @@ class MainWindow(QMainWindow):
         for po in pos:
             row = self.table.rowCount()
             self.table.insertRow(row)
+
+            checkbox_item = QTableWidgetItem()
+            checkbox_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+            checkbox_item.setCheckState(Qt.CheckState.Unchecked)
+            self.table.setItem(row, COL_CHECKBOX, checkbox_item)
+
             vencimento = po.installments[0].vencimento if po.installments else ""
             valor = po.installments[0].valor if po.installments else ""
             valores = [
@@ -221,8 +235,9 @@ class MainWindow(QMainWindow):
             for col, texto in enumerate(valores):
                 item = QTableWidgetItem(texto)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.table.setItem(row, col, item)
+                self.table.setItem(row, col + 1, item)
         self.table.resizeColumnsToContents()
+        self.table.setColumnWidth(COL_CHECKBOX, 30)
 
     def _criar_ocs(self):
         if not self._pos:
@@ -250,11 +265,46 @@ class MainWindow(QMainWindow):
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         item.setBackground(cor)
         self.table.setItem(row, COL_RESULTADO, item)
-        for col in range(COL_RESULTADO):
+        for col in range(1, COL_RESULTADO):
             cell = self.table.item(row, col)
             if cell:
                 cell.setBackground(cor)
+        checkbox = self.table.item(row, COL_CHECKBOX)
+        if checkbox:
+            checkbox.setFlags(Qt.ItemFlag.ItemIsUserCheckable)
         self.progress_bar.setValue(row + 1)
+
+    def _apagar_temporarias(self):
+        rows_to_delete = []
+        for row in range(self.table.rowCount()):
+            checkbox = self.table.item(row, COL_CHECKBOX)
+            resultado = self.table.item(row, COL_RESULTADO)
+            is_checked = checkbox and checkbox.checkState() == Qt.CheckState.Checked
+            is_unsent = not resultado or not resultado.text()
+            if is_checked and is_unsent:
+                rows_to_delete.append(row)
+
+        if not rows_to_delete:
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Confirmar exclusão",
+            f"Deseja apagar {len(rows_to_delete)} OC(s) selecionada(s)?\n\n"
+            "Esta ação remove as OCs somente desta aplicação. "
+            "Nenhum registro será excluído no M8.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        for row in reversed(rows_to_delete):
+            self.table.removeRow(row)
+            del self._pos[row]
+
+        self.create_button.setEnabled(bool(self._pos))
+        self.delete_button.setEnabled(bool(self._pos))
 
     def _ao_concluir(self):
         self.import_button.setEnabled(True)
