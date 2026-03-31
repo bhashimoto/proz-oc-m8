@@ -83,7 +83,7 @@ def generate_purchase_order(unidade: str, tipo_oc: str, fornecedorId: int,
         31: 1411091897,
     }
 
-    COST_CENTER: dict[str, int] = {
+    ESTABELECIMENTO: dict[str, int] = {
         'Carapicuíba': 0,
         'Diadema': 0,
         'Grajaú': 0,
@@ -105,6 +105,11 @@ def generate_purchase_order(unidade: str, tipo_oc: str, fornecedorId: int,
         'Uberlândia': 291,
     }
 
+    COST_CENTER: dict[str, int] = {
+        "professor": 332,
+        "preceptor": 332,
+    }
+
     FISCAL_OP: dict[int, dict[str, int]] = {
         1: {
             "professor": 1,
@@ -116,7 +121,7 @@ def generate_purchase_order(unidade: str, tipo_oc: str, fornecedorId: int,
         }
     }
 
-    STATUS = "Aprovado"
+    STATUS = "Pendente"  # "Aprovado"
     FREIGHT_ID = 9
     PAYMENT_CONDITION_ID = 15
     PURCHASE_ORDER_TYPE_ID = 1
@@ -130,7 +135,7 @@ def generate_purchase_order(unidade: str, tipo_oc: str, fornecedorId: int,
 
     empresaId = EMPRESA[unidade]
     funcionarioId = EMPLOYEE[empresaId]
-    centroCustoId = COST_CENTER[unidade]
+    centroCustoId = COST_CENTER[tipo_oc]
     operacaoFiscalId = FISCAL_OP[empresaId][tipo_oc]
 
     vencimento = vencimento.replace("T00", "T04")
