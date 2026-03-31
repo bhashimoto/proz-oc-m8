@@ -6,10 +6,15 @@ from gui.main_window import MainWindow
 
 
 def app():
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    return app.exec()
+    try:
+        app = QApplication(sys.argv)
+        window = MainWindow()
+        window.show()
+        return app.exec()
+    except Exception as e:
+        with open("error.txt", "w") as f:
+            f.write(e)
+        sys.exit()
 
 
 if __name__ == "__main__":

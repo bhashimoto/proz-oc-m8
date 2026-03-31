@@ -163,6 +163,11 @@ class MainWindow(QMainWindow):
         self.delete_button.setEnabled(False)
         layout.addWidget(self.delete_button)
 
+        self.delete_failed_button = QPushButton("Apagar tentativas com falha")
+        self.delete_failed_button.clicked.connect(self._apagar_falhas)
+        self.delete_failed_button.setEnabled(False)
+        layout.addWidget(self.delete_failed_button)
+
         self._usuario: str | None = None
         self._senha: str | None = None
         self._m8 = M8()
@@ -203,13 +208,13 @@ class MainWindow(QMainWindow):
             return
 
         items = load_oc(path)
-        self._pos = generate_purchase_order_bulk(items)
-        self._preencher_table(self._pos)
+        new_pos = generate_purchase_order_bulk(items)
+        self._pos.extend(new_pos)
+        self._preencher_table(new_pos)
         self.create_button.setEnabled(bool(self._pos))
         self.delete_button.setEnabled(bool(self._pos))
 
     def _preencher_table(self, pos: list[PurchaseOrder]):
-        self.table.setRowCount(0)
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
         for po in pos:
@@ -217,7 +222,8 @@ class MainWindow(QMainWindow):
             self.table.insertRow(row)
 
             checkbox_item = QTableWidgetItem()
-            checkbox_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+            checkbox_item.setFlags(
+                Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
             checkbox_item.setCheckState(Qt.CheckState.Unchecked)
             self.table.setItem(row, COL_CHECKBOX, checkbox_item)
 
@@ -307,7 +313,32 @@ class MainWindow(QMainWindow):
         self.create_button.setEnabled(bool(self._pos))
         self.delete_button.setEnabled(bool(self._pos))
 
+    def _apagar_falhas(self):
+        rows_to_delete = []
+        for row in range(self.table.rowCount()):
+            resultado = self.table.item(row, COL_RESULTADO)
+            if resultado and resultado.background().color() == COR_ERRO:
+                rows_to_delete.append(row)
+
+        if not rows_to_delete:
+            return
+
+        for row in reversed(rows_to_delete):
+            self.table.removeRow(row)
+            del self._pos[row]
+
+        self.delete_failed_button.setEnabled(False)
+        self.create_button.setEnabled(bool(self._pos))
+        self.delete_button.setEnabled(bool(self._pos))
+
     def _ao_concluir(self):
         self.import_button.setEnabled(True)
         self.create_button.setEnabled(True)
         self.table.resizeColumnsToContents()
+        has_failures = any(
+            self.table.item(row, COL_RESULTADO) and
+            self.table.item(
+                row, COL_RESULTADO).background().color() == COR_ERRO
+            for row in range(self.table.rowCount())
+        )
+        self.delete_failed_button.setEnabled(has_failures)
