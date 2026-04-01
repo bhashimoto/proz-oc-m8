@@ -93,7 +93,8 @@ class SobreDialog(QDialog):
 
 
 class CriarOCWorker(QThread):
-    progresso = pyqtSignal(int, bool, str)  # row, sucesso, mensagem
+    # row, sucesso, mensagem, id criado
+    progresso = pyqtSignal(int, bool, str)
     concluido = pyqtSignal()
 
     def __init__(self, m8: M8, pos: list[PurchaseOrder]):
@@ -104,10 +105,10 @@ class CriarOCWorker(QThread):
     def run(self):
         for i, po in enumerate(self._pos):
             try:
-                self._m8.create_purchase_order(po, full=True)
-                self.progresso.emit(i, True, "Criado")
+                oc_id = self._m8.create_purchase_order(po, full=True)
+                self.progresso.emit(i, True, f"Criado - OC {oc_id}")
             except (BadRequestException, Exception) as e:
-                self.progresso.emit(i, False, str(e))
+                self.progresso.emit(i, False, str(e), -1)
         self.concluido.emit()
 
 
