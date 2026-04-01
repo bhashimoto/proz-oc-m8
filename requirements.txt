@@ -7,7 +7,7 @@ Markdown==3.10.2
 openpyxl==3.1.5
 packaging==26.0
 pluggy==1.6.0
-proz-m8 @ git+https://github.com/bhashimoto/proz-m8.git@f7adbc3f46350817431533f77b88b7d90920c669
+proz-m8 @ git+https://github.com/bhashimoto/proz-m8.git
 Pygments==2.19.2
 PyQt6==6.10.2
 PyQt6-Qt6==6.10.2
