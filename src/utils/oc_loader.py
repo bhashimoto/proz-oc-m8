@@ -165,7 +165,7 @@ def generate_purchase_order(unidade: str, tipo_oc: str, fornecedorId: int,
         items=[po_item],
         installments=[po_installment],
         tipoOrdemCompraId=PURCHASE_ORDER_TYPE_ID,
-        tipo_oc=tipo_oc
+        tipoOC=tipo_oc
     )
 
     return po
